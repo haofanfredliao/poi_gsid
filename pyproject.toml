@@ -1,0 +1,30 @@
+[project]
+name = "poi-gsid"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "beautifulsoup4>=4.14.2",
+    "einops>=0.8.1",
+    "geopandas>=0.6.3",
+    "h3>=4.3.1",
+    "huggingface-hub>=0.36.0",
+    "imagecodecs>=2025.11.11",
+    "jupyter>=1.1.1",
+    "jupyterlab>=4.5.0",
+    "matplotlib>=3.10.7",
+    "numpy>=2.3.5",
+    "pandas>=2.3.3",
+    "peft>=0.18.0",
+    "pip>=25.3",
+    "pyarrow>=22.0.0",
+    "requests>=2.32.5",
+    "scikit-learn>=1.7.2",
+    "seaborn>=0.13.2",
+    "tifffile>=2025.10.16",
+    "torch-geometric>=2.7.0",
+    "torchvision>=0.24.1",
+    "trainer>=0.0.36",
+    "transformers>=4.57.1",
+]
