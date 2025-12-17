@@ -46,8 +46,8 @@ def preprocess_poi_data(df):
         axis=1
     )
 
-    print(f"数据预处理完成。原始条目: {len(df)}, 处理后条目: {len(df)}")
-    print(f"填补了 {df['description'].isna().sum()} 个缺失的 description。")
+    print(f"Data Preprocessed. Original entries: {len(df)}, Processed entries: {len(df)}")
+    print(f"Filled {df['description'].isna().sum()} missing descriptions.")
     
     return df
 
