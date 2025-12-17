@@ -144,7 +144,7 @@ if __name__ == "__main__":
         "/Users/fred/HKU/data/pois_pandas/batch_0003.parquet.gz",
         "/Users/fred/HKU/data/pois_pandas/batch_0004.parquet.gz",
         "/Users/fred/HKU/data/pois_pandas/batch_0005.parquet.gz",
-        "/Users/fred/HKU/data/pois_pandas/batch_0004.parquet.gz",
+        "/Users/fred/HKU/data/pois_pandas/batch_0006.parquet.gz",
     ]
 
     image_base_paths = [
