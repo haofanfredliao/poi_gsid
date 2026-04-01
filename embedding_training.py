@@ -4,8 +4,13 @@ from embedding.trainer import *
 # 读取你的数据
 # df = pd.read_csv("sample500.csv")
 def train_embedding_main():
-    ROOT_DIR = "/Users/fred/HKU/data/pois_pandas"
-    DF_NAME = "batch_0006.parquet.gz"
+    # ----------------------------------------------------------------
+    # Configure the paths below before running.
+    # ----------------------------------------------------------------
+    # ROOT_DIR = "/path/to/pois_pandas"   # directory containing parquet.gz batches
+    # DF_NAME  = "batch_0001.parquet.gz"  # which batch to train on
+    ROOT_DIR = "/path/to/pois_pandas"  # <-- update this
+    DF_NAME  = "batch_0001.parquet.gz" # <-- update this
     df = pd.read_parquet(os.path.join(ROOT_DIR, DF_NAME))
 
     # 数据预处理
@@ -34,18 +39,18 @@ def train_embedding_main():
     #     is_gcs=False  # 如果使用GCS，设为True
     # )
 
-    # 增量训练配置
+    # Incremental training (resume from checkpoint)
     model, trainer = train_poi_encoder(
         train_df=train_df,
         val_df=val_df,
-        image_base_path="/my_data/image_data_b6",  # 新Batch的图像路径
-        output_dir="/home/jupyter/poi_encoder_output",   # 使用相同的输出目录
-        num_epochs=3,  
+        image_base_path="/path/to/image_data",  # <-- update for your batch
+        output_dir="./poi_encoder_output",
+        num_epochs=3,
         batch_size=48,
-        learning_rate=5e-5,  
+        learning_rate=5e-5,
         use_lora=False,
         is_gcs=False,
-        resume_from_checkpoint="/home/jupyter/poi_encoder_output/checkpoint-5001"  # 选择之前训练checkpoint最大值
+        resume_from_checkpoint=None,  # e.g. "./poi_encoder_output/checkpoint-5001"
     )
 
     print("\n训练完成！")

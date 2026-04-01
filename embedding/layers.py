@@ -399,3 +399,31 @@ class POIEmbeddingExtractor:
             embeddings.append(emb)
         
         return np.array(embeddings)
+
+
+class MultiModalContrastiveLoss(nn.Module):
+    """Multi-modal contrastive learning loss (self-supervised, in-batch negatives)"""
+
+    def __init__(self, temperature: float = 0.07):
+        super().__init__()
+        self.temperature = temperature
+        self.criterion = nn.CrossEntropyLoss()
+
+    def forward(self, embeddings: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            embeddings: [batch_size, embedding_dim], already L2-normalised by the encoder.
+        """
+        batch_size = embeddings.shape[0]
+
+        # Re-normalise to be safe
+        embeddings = F.normalize(embeddings, p=2, dim=1)
+
+        # Cosine similarity matrix scaled by temperature
+        similarity_matrix = torch.matmul(embeddings, embeddings.T) / self.temperature
+
+        # Diagonal entries are the positives (each sample paired with itself)
+        labels = torch.arange(batch_size, device=embeddings.device)
+
+        loss = self.criterion(similarity_matrix, labels)
+        return loss

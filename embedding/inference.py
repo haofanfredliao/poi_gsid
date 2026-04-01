@@ -137,32 +137,32 @@ def generate_all_poi_embeddings(
 
 
 if __name__ == "__main__":
-    # Configure paths for all batches
-    parquet_paths = [   
-        "/Users/fred/HKU/data/pois_pandas/batch_0001.parquet.gz",
-        "/Users/fred/HKU/data/pois_pandas/batch_0002.parquet.gz",
-        "/Users/fred/HKU/data/pois_pandas/batch_0003.parquet.gz",
-        "/Users/fred/HKU/data/pois_pandas/batch_0004.parquet.gz",
-        "/Users/fred/HKU/data/pois_pandas/batch_0005.parquet.gz",
-        "/Users/fred/HKU/data/pois_pandas/batch_0006.parquet.gz",
+    # ----------------------------------------------------------------
+    # Configure the paths below before running.
+    # ----------------------------------------------------------------
+
+    # List of preprocessed POI parquet.gz files (one per batch):
+    parquet_paths = [
+        # "/path/to/data/batch_0001.parquet.gz",
+        # "/path/to/data/batch_0002.parquet.gz",
     ]
 
+    # Corresponding local directories containing the cover images:
     image_base_paths = [
-        "/home/jupyter/image_data",      
-        "/home/jupyter/image_data_b2",   
-        "/home/jupyter/image_data_b3",   
-        "/my_data/image_data_b4",        
-        "/my_data/image_data_b5",
-        "/my_data/image_data_b6"
+        # "/path/to/image_data_b1",
+        # "/path/to/image_data_b2",
     ]
+
+    if not parquet_paths:
+        raise ValueError("Set parquet_paths and image_base_paths before running inference.")
 
     # Generate embeddings
     poi_embeddings = generate_all_poi_embeddings(
-        model_path="/home/jupyter/poi_encoder_output/final_model",
+        model_path="/path/to/poi_encoder_output/final_model",  # <-- update this
         parquet_paths=parquet_paths,
         image_base_paths=image_base_paths,
-        output_path="/home/jupyter/poi_embeddings_full_v2.pkl",
-        batch_size=128,  
+        output_path="./poi_embeddings.pkl",  # <-- update output path
+        batch_size=128,
         device='cuda' if torch.cuda.is_available() else 'cpu'
     )
 
