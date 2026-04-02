@@ -431,12 +431,12 @@ class RQVAE(nn.Module):
             bn=bn
         )
         
-        print(f" RQVAE模型构建完成:")
-        print(f" 输入维度: {in_dim}")
-        print(f" Latent维度: {e_dim}")
-        print(f" Quantizer层数: {len(num_emb_list)}")
-        print(f" Codebook大小: {num_emb_list}")
-        print(f" 总参数量: {sum(p.numel() for p in self.parameters()):,}")
+        print(f"RQVAE model initialized:")
+        print(f"  Input dim: {in_dim}")
+        print(f"  Latent dim: {e_dim}")
+        print(f"  Quantizer layers: {len(num_emb_list)}")
+        print(f"  Codebook sizes: {num_emb_list}")
+        print(f"  Total params: {sum(p.numel() for p in self.parameters()):,}")
 
     def encode(self, x):
         """编码: 原始embedding -> latent"""

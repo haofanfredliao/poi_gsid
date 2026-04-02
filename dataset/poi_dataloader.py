@@ -94,7 +94,7 @@ class POIDataset(Dataset):
                 full_path = Path(self.image_base_path) / image_name
                 return Image.open(full_path).convert('RGB')
         except Exception as e:
-            print(f"加载图片失败 {image_path}: {e}")
+            print(f"Failed to load image {image_path}: {e}")
             return None
     
     def __getitem__(self, idx):

@@ -59,7 +59,7 @@ class RQVAETrainer:
         self.best_loss = float('inf')
         self.best_collision_rate = 1.0
         
-        print("训练器初始化完成")
+        print("Trainer initialized.")
     
     def warmup_lr(self, epoch):
         """Warmup学习率"""
@@ -154,7 +154,7 @@ class RQVAETrainer:
     def fit(self):
         """完整训练流程"""
         print(f"\n{'='*60}")
-        print(f"开始训练 RQ-VAE")
+        print(f"Starting RQ-VAE training")
         print(f"{'='*60}\n")
         
         for epoch in range(self.config.epochs):
@@ -180,22 +180,22 @@ class RQVAETrainer:
                 print(f"\n{'='*60}")
                 print(f"Epoch {epoch+1}/{self.config.epochs}")
                 print(f"{'='*60}")
-                print(f"📊 Train Loss: {train_loss:.6f}")
-                print(f"   - Recon Loss: {recon_loss:.6f}")
-                print(f"   - Quant Loss: {quant_loss:.6f}")
-                print(f"🎯 Collision Rate: {collision_rate:.4%}")
-                print(f"📈 Learning Rate: {current_lr:.2e}")
-                print(f"🏆 Best Loss: {self.best_loss:.6f}")
-                print(f"🏆 Best Collision: {self.best_collision_rate:.4%}")
+                print(f"Train Loss: {train_loss:.6f}")
+                print(f"  Recon Loss: {recon_loss:.6f}")
+                print(f"  Quant Loss: {quant_loss:.6f}")
+                print(f"Collision Rate: {collision_rate:.4%}")
+                print(f"Learning Rate: {current_lr:.2e}")
+                print(f"Best Loss: {self.best_loss:.6f}")
+                print(f"Best Collision: {self.best_collision_rate:.4%}")
                 
                 # 保存checkpoint
                 self.save_checkpoint(epoch, train_loss, collision_rate)
         
         print(f"\n{'='*60}")
-        print(f"✅ 训练完成!")
+        print("Training complete.")
         print(f"{'='*60}")
-        print(f"🏆 Best Loss: {self.best_loss:.6f}")
-        print(f"🏆 Best Collision Rate: {self.best_collision_rate:.4%}")
+        print(f"Best Loss: {self.best_loss:.6f}")
+        print(f"Best Collision Rate: {self.best_collision_rate:.4%}")
         
         return self.best_loss, self.best_collision_rate
     
@@ -216,7 +216,7 @@ class RQVAETrainer:
             'history': self.history
         }, checkpoint_path)
         
-        print(f"💾 Checkpoint saved: {checkpoint_path}")
+        print(f"Checkpoint saved: {checkpoint_path}")
         
         # 保留最近的N个checkpoints
         checkpoints = sorted(

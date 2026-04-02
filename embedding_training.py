@@ -65,8 +65,8 @@ def train_embedding_main():
 
     df = _load_dataframe(args.csv_path, args.parquet_path)
 
-    print(f"数据集大小: {len(df)}")
-    print(f"列名: {df.columns.tolist()}")
+    print(f"Dataset size: {len(df)}")
+    print(f"Columns: {df.columns.tolist()}")
 
     train_df, val_df = train_test_split(
         df,
@@ -74,8 +74,8 @@ def train_embedding_main():
         random_state=args.random_state,
     )
 
-    print(f"\n训练集大小: {len(train_df)}")
-    print(f"验证集大小: {len(val_df)}")
+    print(f"\nTrain set size: {len(train_df)}")
+    print(f"Val set size: {len(val_df)}")
 
     train_poi_encoder(
         train_df=train_df,
@@ -90,7 +90,7 @@ def train_embedding_main():
         resume_from_checkpoint=args.resume_from_checkpoint,
     )
 
-    print("\n训练完成！")
+    print("\nTraining complete.")
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ class POIEmbeddingDataset(Dataset):
     """
     
     def __init__(self, pkl_path):
-        print(f"加载embeddings from: {pkl_path}")
+        print(f"Loading embeddings from: {pkl_path}")
         
         with open(pkl_path, 'rb') as f:
             self.data = pickle.load(f)
@@ -30,16 +30,16 @@ class POIEmbeddingDataset(Dataset):
         
         # 检查维度一致性
         embedding_dims = [emb.shape[0] for emb in self.embeddings]
-        assert len(set(embedding_dims)) == 1, "所有embeddings维度必须一致！"
+        assert len(set(embedding_dims)) == 1, "All embeddings must have the same dimension."
         
         self.embedding_dim = embedding_dims[0]
         self.num_pois = len(self.poi_ids)
         
-        print(f"加载完成:")
-        print(f"POI数量: {self.num_pois:,}")
-        print(f"Embedding维度: {self.embedding_dim}")
-        print(f"示例POI ID: {self.poi_ids[0]}")
-        print(f"示例Embedding shape: {self.embeddings[0].shape}")
+        print("Loaded:")
+        print(f"  POI count: {self.num_pois:,}")
+        print(f"  Embedding dim: {self.embedding_dim}")
+        print(f"  Sample POI ID: {self.poi_ids[0]}")
+        print(f"  Sample embedding shape: {self.embeddings[0].shape}")
     
     def __len__(self):
         return self.num_pois

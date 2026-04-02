@@ -285,14 +285,14 @@ class POIEmbeddingExtractor:
         # 检查文件是否存在
         if os.path.exists(safetensors_path):
             try:
-                print(f"✅ 找到 safetensors 文件: {safetensors_path}")
+                print(f"Found safetensors file: {safetensors_path}")
                 checkpoint = load_file(safetensors_path)
             except:
                 raise FileNotFoundError(
-                f"未找到模型文件！\n"
-                f"尝试查找的位置:\n"
+                f"Model file not found.\n"
+                f"Checked path:\n"
                 f"  - {safetensors_path}\n"
-                f"请检查模型路径是否正确"
+                f"Please verify the model path."
             )
         
         # 加载权重

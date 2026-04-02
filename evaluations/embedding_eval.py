@@ -96,8 +96,8 @@ def evaluate_tsne(model, dataset, config, num_samples=3000, perplexity=30):
     recon_embs = np.concatenate(recon_embs, axis=0)[:num_samples]
     layer1_codes = np.concatenate(layer1_codes, axis=0)[:num_samples]
     
-    print(f"📊 数据准备完成，开始运行 t-SNE 降维...")
-    print(f"   数据形状: {original_embs.shape}")
+    print("Data ready, running t-SNE dimensionality reduction...")
+    print(f"  Data shape: {original_embs.shape}")
     
     # 2. 运行 t-SNE
     # 将原始数据和重构数据拼接在一起进行降维，以保证在同一个坐标系下比较
@@ -110,7 +110,7 @@ def evaluate_tsne(model, dataset, config, num_samples=3000, perplexity=30):
     orig_2d = combined_2d[:num_samples]
     recon_2d = combined_2d[num_samples:]
     
-    print(f"✅ t-SNE 计算完成，开始绘图...")
+    print("t-SNE complete, plotting...")
     
     # 3. 绘图
     fig, axes = plt.subplots(1, 3, figsize=(27, 9))
