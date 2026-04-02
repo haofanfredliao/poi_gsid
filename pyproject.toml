@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "beautifulsoup4>=4.14.2",
+    "datasets>=4.8.4",
     "einops>=0.8.1",
     "geopandas>=0.6.3",
     "h3>=4.3.1",

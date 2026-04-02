@@ -1,56 +1,97 @@
+import argparse
 import os
-import pandas as pd
-from embedding.trainer import *
-# 读取你的数据
-# df = pd.read_csv("sample500.csv")
-def train_embedding_main():
-    # ----------------------------------------------------------------
-    # Configure the paths below before running.
-    # ----------------------------------------------------------------
-    # ROOT_DIR = "/path/to/pois_pandas"   # directory containing parquet.gz batches
-    # DF_NAME  = "batch_0001.parquet.gz"  # which batch to train on
-    ROOT_DIR = "/path/to/pois_pandas"  # <-- update this
-    DF_NAME  = "batch_0001.parquet.gz" # <-- update this
-    df = pd.read_parquet(os.path.join(ROOT_DIR, DF_NAME))
+from pathlib import Path
 
-    # 数据预处理
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+from embedding.trainer import train_poi_encoder
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Train POI embedding model")
+    parser.add_argument(
+        "--csv_path",
+        type=str,
+        default="",
+        help="Path to CSV input data",
+    )
+    parser.add_argument(
+        "--parquet_path",
+        type=str,
+        default="",
+        help="Path to parquet input data (.parquet / .parquet.gz)",
+    )
+    parser.add_argument(
+        "--image_dir",
+        type=str,
+        required=True,
+        help="Directory containing cover images",
+    )
+    parser.add_argument("--output_dir", type=str, default="./poi_encoder_output")
+    parser.add_argument("--num_epochs", type=int, default=3)
+    parser.add_argument("--batch_size", type=int, default=48)
+    parser.add_argument("--learning_rate", type=float, default=5e-5)
+    parser.add_argument("--test_size", type=float, default=0.2)
+    parser.add_argument("--random_state", type=int, default=42)
+    parser.add_argument("--use_lora", action="store_true")
+    parser.add_argument("--resume_from_checkpoint", type=str, default=None)
+    return parser.parse_args()
+
+
+def _load_dataframe(csv_path: str, parquet_path: str) -> pd.DataFrame:
+    if csv_path and parquet_path:
+        raise ValueError("Please provide only one of --csv_path or --parquet_path")
+
+    if csv_path:
+        if not os.path.exists(csv_path):
+            raise FileNotFoundError(f"CSV file not found: {csv_path}")
+        return pd.read_csv(csv_path)
+
+    if parquet_path:
+        if not os.path.exists(parquet_path):
+            raise FileNotFoundError(f"Parquet file not found: {parquet_path}")
+        return pd.read_parquet(parquet_path)
+
+    raise ValueError("Please provide input data via --csv_path or --parquet_path")
+
+
+def train_embedding_main():
+    args = parse_args()
+
+    image_dir = Path(args.image_dir)
+    if not image_dir.exists() or not image_dir.is_dir():
+        raise NotADirectoryError(f"Invalid --image_dir: {args.image_dir}")
+
+    df = _load_dataframe(args.csv_path, args.parquet_path)
+
     print(f"数据集大小: {len(df)}")
     print(f"列名: {df.columns.tolist()}")
 
-
-    # 分割训练/验证集
-    from sklearn.model_selection import train_test_split
-    train_df, val_df = train_test_split(df, test_size=0.2, random_state=42)
+    train_df, val_df = train_test_split(
+        df,
+        test_size=args.test_size,
+        random_state=args.random_state,
+    )
 
     print(f"\n训练集大小: {len(train_df)}")
     print(f"验证集大小: {len(val_df)}")
 
-    # 第一次训练时加使用这个配置
-    # model, trainer = train_poi_encoder(
-    #     train_df=train_df,
-    #     val_df=val_df,
-    #     image_base_path="/home/jupyter/image_data",  # 本地路径
-    #     # image_base_path="gs://your-bucket",  # 或GCS路径
-    #     output_dir="/home/jupyter/poi_encoder_output",
-    #     num_epochs=3,
-    #     batch_size=48,
-    #     learning_rate=1e-4,
-    #     use_lora=False,
-    #     is_gcs=False  # 如果使用GCS，设为True
-    # )
-
-    # Incremental training (resume from checkpoint)
-    model, trainer = train_poi_encoder(
+    train_poi_encoder(
         train_df=train_df,
         val_df=val_df,
-        image_base_path="/path/to/image_data",  # <-- update for your batch
-        output_dir="./poi_encoder_output",
-        num_epochs=3,
-        batch_size=48,
-        learning_rate=5e-5,
-        use_lora=False,
+        image_base_path=str(image_dir),
+        output_dir=args.output_dir,
+        num_epochs=args.num_epochs,
+        batch_size=args.batch_size,
+        learning_rate=args.learning_rate,
+        use_lora=args.use_lora,
         is_gcs=False,
-        resume_from_checkpoint=None,  # e.g. "./poi_encoder_output/checkpoint-5001"
+        resume_from_checkpoint=args.resume_from_checkpoint,
     )
 
     print("\n训练完成！")
+
+
+if __name__ == "__main__":
+    train_embedding_main()

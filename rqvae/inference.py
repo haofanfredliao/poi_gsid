@@ -2,11 +2,34 @@ import torch
 import numpy as np
 import pickle
 import os
+import argparse
+import sys
+from pathlib import Path
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 from rqvae.layers import RQVAE, Config
 from dataset.embedding_dataset import POIEmbeddingDataset
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Generate semantic IDs with trained RQ-VAE")
+    parser.add_argument("--embedding_pkl_path", type=str, required=True)
+    parser.add_argument("--checkpoint_path", type=str, default="")
+    parser.add_argument("--ckpt_dir", type=str, default="./rqvae_checkpoints")
+    parser.add_argument("--save_path", type=str, default="poi_semantic_ids.pkl")
+    parser.add_argument("--batch_size", type=int, default=128)
+    parser.add_argument("--num_workers", type=int, default=0)
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda" if torch.cuda.is_available() else "cpu",
+    )
+    return parser.parse_args()
 
 
 def generate_and_save_semantic_ids(model, dataset, config, save_path="poi_semantic_ids.pkl"):
@@ -73,31 +96,37 @@ def generate_and_save_semantic_ids(model, dataset, config, save_path="poi_semant
 
 
 if __name__ == "__main__":
+    args = parse_args()
     config = Config()
-    # Set the path to your pre-generated POI embeddings .pkl file:
-    # config.embedding_pkl_path = "/path/to/poi_embeddings.pkl"
+    config.embedding_pkl_path = args.embedding_pkl_path
+    config.ckpt_dir = args.ckpt_dir
+    config.batch_size = args.batch_size
+    config.num_workers = args.num_workers
+    config.device = args.device
 
-    if not config.embedding_pkl_path:
-        raise ValueError(
-            "config.embedding_pkl_path is empty. "
-            "Set it to the path of your POI embeddings .pkl file before running inference."
-        )
+    if not os.path.exists(config.embedding_pkl_path):
+        raise FileNotFoundError(f"Embedding PKL not found: {config.embedding_pkl_path}")
 
     dataset = POIEmbeddingDataset(config.embedding_pkl_path)
 
-    # Load model from the latest checkpoint in config.ckpt_dir
-    import glob
-    checkpoints = sorted(
-        glob.glob(os.path.join(config.ckpt_dir, "checkpoint_epoch_*.pt")),
-        key=os.path.getmtime
-    )
-    if not checkpoints:
-        raise FileNotFoundError(f"No checkpoints found in {config.ckpt_dir}")
+    if args.checkpoint_path:
+        ckpt_path = args.checkpoint_path
+        if not os.path.exists(ckpt_path):
+            raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}")
+    else:
+        import glob
 
-    ckpt_path = checkpoints[-1]
+        checkpoints = sorted(
+            glob.glob(os.path.join(config.ckpt_dir, "checkpoint_epoch_*.pt")),
+            key=os.path.getmtime,
+        )
+        if not checkpoints:
+            raise FileNotFoundError(f"No checkpoints found in {config.ckpt_dir}")
+        ckpt_path = checkpoints[-1]
+
     print(f"Loading checkpoint: {ckpt_path}")
 
-    checkpoint = torch.load(ckpt_path, map_location=config.device)
+    checkpoint = torch.load(ckpt_path, map_location=config.device, weights_only=False)
 
     model = RQVAE(
         in_dim=dataset.get_embedding_dim(),
@@ -124,7 +153,7 @@ if __name__ == "__main__":
         model=model,
         dataset=dataset,
         config=config,
-        save_path="poi_semantic_ids.pkl",
+        save_path=args.save_path,
     )
 
     print("\nSample Semantic IDs:")

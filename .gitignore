@@ -49,4 +49,6 @@ build/
 *.egg-info/
 
 notebooks/
+artifacts/
 plan.md
+poi_encoder_output/
