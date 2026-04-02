@@ -3,13 +3,34 @@ from torch.utils.data import DataLoader
 import numpy as np
 import os
 import random
+import argparse
 from dataset.embedding_dataset import *
 from rqvae.trainer import *
 from rqvae.layers import *
 
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Train RQ-VAE on POI embeddings")
+    parser.add_argument("--embedding_pkl_path", type=str, required=True)
+    parser.add_argument("--ckpt_dir", type=str, default="./rqvae_checkpoints")
+    parser.add_argument("--epochs", type=int, default=300)
+    parser.add_argument("--batch_size", type=int, default=128)
+    parser.add_argument("--num_workers", type=int, default=0)
+    parser.add_argument("--eval_step", type=int, default=50)
+    parser.add_argument("--lr", type=float, default=1e-4)
+    parser.add_argument("--seed", type=int, default=2024)
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda" if torch.cuda.is_available() else "cpu",
+    )
+    return parser.parse_args()
+
 if __name__ == "__main__":
+    args = parse_args()
+
     # 设置随机种子
-    seed = 2024
+    seed = args.seed
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -18,6 +39,18 @@ if __name__ == "__main__":
     torch.backends.cudnn.benchmark = False
 
     config = Config()
+    config.embedding_pkl_path = args.embedding_pkl_path
+    config.ckpt_dir = args.ckpt_dir
+    config.epochs = args.epochs
+    config.batch_size = args.batch_size
+    config.num_workers = args.num_workers
+    config.eval_step = args.eval_step
+    config.lr = args.lr
+    config.device = args.device
+
+    if not os.path.exists(config.embedding_pkl_path):
+        raise FileNotFoundError(f"Embedding PKL not found: {config.embedding_pkl_path}")
+
     print(config)
 
     # 创建checkpoint目录

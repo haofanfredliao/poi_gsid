@@ -3,8 +3,20 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import pickle
 import gc
-from dataset.poi_dataloader import *
-from embedding.layers import *
+import argparse
+import os
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from dataset.poi_dataloader import POIDataset, collate_fn
+from embedding.layers import MultiModalPOIEncoder
 
 def generate_all_poi_embeddings(
     model_path: str,
@@ -136,38 +148,114 @@ def generate_all_poi_embeddings(
     return poi_embeddings
 
 
-if __name__ == "__main__":
-    # Configure paths for all batches
-    parquet_paths = [   
-        "/Users/fred/HKU/data/pois_pandas/batch_0001.parquet.gz",
-        "/Users/fred/HKU/data/pois_pandas/batch_0002.parquet.gz",
-        "/Users/fred/HKU/data/pois_pandas/batch_0003.parquet.gz",
-        "/Users/fred/HKU/data/pois_pandas/batch_0004.parquet.gz",
-        "/Users/fred/HKU/data/pois_pandas/batch_0005.parquet.gz",
-        "/Users/fred/HKU/data/pois_pandas/batch_0006.parquet.gz",
-    ]
+def parse_args():
+    parser = argparse.ArgumentParser(description="Generate POI embeddings")
+    parser.add_argument("--model_path", type=str, required=True)
+    parser.add_argument("--csv_path", type=str, default="")
+    parser.add_argument("--parquet_path", type=str, default="")
+    parser.add_argument("--image_dir", type=str, required=True)
+    parser.add_argument("--output_path", type=str, default="./poi_embeddings.pkl")
+    parser.add_argument("--batch_size", type=int, default=128)
+    parser.add_argument("--num_workers", type=int, default=0)
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda" if torch.cuda.is_available() else "cpu",
+    )
+    return parser.parse_args()
 
-    image_base_paths = [
-        "/home/jupyter/image_data",      
-        "/home/jupyter/image_data_b2",   
-        "/home/jupyter/image_data_b3",   
-        "/my_data/image_data_b4",        
-        "/my_data/image_data_b5",
-        "/my_data/image_data_b6"
-    ]
 
-    # Generate embeddings
-    poi_embeddings = generate_all_poi_embeddings(
-        model_path="/home/jupyter/poi_encoder_output/final_model",
-        parquet_paths=parquet_paths,
-        image_base_paths=image_base_paths,
-        output_path="/home/jupyter/poi_embeddings_full_v2.pkl",
-        batch_size=128,  
-        device='cuda' if torch.cuda.is_available() else 'cpu'
+def _load_df(csv_path: str, parquet_path: str) -> pd.DataFrame:
+    if csv_path and parquet_path:
+        raise ValueError("Provide only one of --csv_path or --parquet_path")
+    if csv_path:
+        if not os.path.exists(csv_path):
+            raise FileNotFoundError(f"CSV not found: {csv_path}")
+        return pd.read_csv(csv_path)
+    if parquet_path:
+        if not os.path.exists(parquet_path):
+            raise FileNotFoundError(f"Parquet not found: {parquet_path}")
+        return pd.read_parquet(parquet_path)
+    raise ValueError("Provide input data with --csv_path or --parquet_path")
+
+
+def generate_embeddings_single_file(
+    model_path: str,
+    df: pd.DataFrame,
+    image_base_path: str,
+    output_path: str,
+    batch_size: int,
+    num_workers: int,
+    device: str,
+):
+    model = MultiModalPOIEncoder(use_lora=False)
+
+    from safetensors.torch import load_file
+
+    checkpoint = load_file(f"{model_path}/model.safetensors")
+    model.load_state_dict(checkpoint, strict=False)
+    model = model.to(device)
+    model.eval()
+
+    dataset = POIDataset(
+        df,
+        image_base_path,
+        model.clip_processor,
+        model.text_tokenizer,
+        is_gcs=False,
     )
 
-    print("\n  POI Embeddings Generation Completed!")
-    print(f"   Statistics:")
-    print(f"   Total POIs: {len(poi_embeddings):,}")
-    print(f"   Embedding Dimension: {poi_embeddings[list(poi_embeddings.keys())[0]].shape[0]}")
-    print(f"   Memory Usage: {sum(emb.nbytes for emb in poi_embeddings.values()) / 1024**3:.2f} GB")
+    dataloader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        collate_fn=collate_fn,
+        pin_memory=(device == "cuda"),
+    )
+
+    poi_embeddings = {}
+    all_embeddings = []
+    all_ids = []
+
+    with torch.no_grad():
+        for batch_data in tqdm(dataloader, desc="Embedding inference"):
+            inputs = {
+                "image": batch_data["image"].to(device) if batch_data["image"] is not None else None,
+                "text_inputs": {
+                    "input_ids": batch_data["text_inputs"]["input_ids"].to(device),
+                    "attention_mask": batch_data["text_inputs"]["attention_mask"].to(device),
+                },
+                "lat": batch_data["lat"].to(device),
+                "lon": batch_data["lon"].to(device),
+                "admin_ids": batch_data["admin_ids"].to(device),
+            }
+            embeddings = model(**inputs)
+            all_embeddings.append(embeddings.cpu().numpy())
+            all_ids.extend(batch_data["labels"])
+
+    merged = np.vstack(all_embeddings)
+    for poi_id, emb in zip(all_ids, merged):
+        poi_embeddings[poi_id] = emb
+
+    with open(output_path, "wb") as f:
+        pickle.dump(poi_embeddings, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    print(f"Saved embeddings to: {output_path}")
+    print(f"Total POIs: {len(poi_embeddings)}")
+    print(f"Embedding dim: {merged.shape[1]}")
+    return poi_embeddings
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    df = _load_df(args.csv_path, args.parquet_path)
+    generate_embeddings_single_file(
+        model_path=args.model_path,
+        df=df,
+        image_base_path=args.image_dir,
+        output_path=args.output_path,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        device=args.device,
+    )

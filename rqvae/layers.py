@@ -7,19 +7,19 @@ from sklearn.cluster import KMeans
 import os
 
 class Config:
-    """RQ-VAE训练配置"""
-    
+    """RQ-VAE training configuration"""
     def __init__(self):
-        # 数据路径
-        self.embedding_pkl_path = "/home/jupyter/poi_embeddings_full_v2.pkl"
+        # Data paths
+        # Set this to the path of your pre-generated POI embeddings .pkl file
+        self.embedding_pkl_path = ""
         
         
-        # 模型参数
+        # model parameters
         self.num_emb_list = [32, 32, 32]
         self.e_dim = 16
         self.layers = [512, 256, 128]
         
-        # VQ参数
+        # VQ parameters
         self.beta = 0.25
         self.lamda = 0.0
         self.quant_loss_weight = 2.0
@@ -30,7 +30,7 @@ class Config:
         self.sk_iters = 50
         self.use_linear = 0
         
-        # 训练参数
+        # Training parameters
         self.lr = 1e-4
         self.epochs = 300
         self.batch_size = 128
@@ -38,27 +38,27 @@ class Config:
         self.eval_step = 50
         self.warmup_epochs = 100
         
-        # 正则化
+        # Regularization
         self.weight_decay = 1e-4
         self.dropout_prob = 0.1
         self.bn = False
         
-        # 损失函数
+        # Loss function
         self.loss_type = "mse"
         
-        # 优化器和调度器
+        # Optimizer and scheduler
         self.learner = "AdamW"
         self.lr_scheduler_type = "constant"
         
-        # 保存
+        # Saving
         self.ckpt_dir = "./rqvae_checkpoints"
         self.save_limit = 5
         
-        # 设备
+        # Device
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
     
     def __repr__(self):
-        """打印配置"""
+        """Printing Config"""
         config_str = "=" * 60 + "\n"
         config_str += "RQ-VAE Configuration\n"
         config_str += "=" * 60 + "\n"
@@ -68,14 +68,9 @@ class Config:
         config_str += "=" * 60
         return config_str
 
-config = Config()
-print(config)
-
-# 创建checkpoint目录
-os.makedirs(config.ckpt_dir, exist_ok=True)
 
 def activation_layer(activation_name="relu", emb_dim=None):
-    """创建激活函数层"""
+    """Create activation layer"""
     if activation_name is None:
         activation = None
     elif isinstance(activation_name, str):
@@ -140,7 +135,7 @@ class MLPLayers(nn.Module):
         return self.mlp_layers(input_feature)
     
 def kmeans(samples, num_clusters, num_iters=10):
-    """使用sklearn的K-means初始化codebook"""
+    """Initialize codebook using sklearn's K-means"""
     B, dim, dtype, device = samples.shape[0], samples.shape[-1], samples.dtype, samples.device
     x = samples.cpu().detach().numpy()
 
@@ -154,7 +149,7 @@ def kmeans(samples, num_clusters, num_iters=10):
 
 @torch.no_grad()
 def sinkhorn_algorithm(distances, epsilon, sinkhorn_iterations):
-    """Sinkhorn算法用于软分配"""
+    """Sinkhorn algorithm for soft assignment"""
     Q = torch.exp(- distances / epsilon)
 
     B = Q.shape[0]  # number of samples to assign
@@ -177,7 +172,7 @@ def sinkhorn_algorithm(distances, epsilon, sinkhorn_iterations):
     return Q
 
 class VectorQuantizer(nn.Module):
-    """单层向量量化器（VQ层）"""
+    """Single-layer vector quantizer (VQ layer)"""
     
     def __init__(
             self,
@@ -496,12 +491,6 @@ class RQVAE(nn.Module):
     def get_semantic_ids(self, x, epoch_idx=0):
         """
         获取semantic IDs（推理模式）
-        
-        Args:
-            x: 输入embeddings
-        
-        Returns:
-            indices: semantic IDs, shape (batch_size, num_quantizers)
         """
         self.eval()
         with torch.no_grad():
@@ -512,12 +501,6 @@ class RQVAE(nn.Module):
     def reconstruct_from_ids(self, indices):
         """
         从semantic IDs重构embeddings
-        
-        Args:
-            indices: semantic IDs, shape (batch_size, num_quantizers)
-        
-        Returns:
-            recon: 重构的embeddings
         """
         self.eval()
         with torch.no_grad():

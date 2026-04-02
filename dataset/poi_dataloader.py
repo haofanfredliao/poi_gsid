@@ -54,7 +54,9 @@ class POIDataset(Dataset):
         clip_processor,
         text_tokenizer,
         max_text_length: int = 512,
-        is_gcs: bool = False
+        is_gcs: bool = False,
+        gcs_project_id: str = "",
+        gcs_bucket_name: str = ""
     ):
         self.df = df.reset_index(drop=True)
         self.image_base_path = image_base_path
@@ -62,10 +64,16 @@ class POIDataset(Dataset):
         self.text_tokenizer = text_tokenizer
         self.max_text_length = max_text_length
         self.is_gcs = is_gcs
-        
+
         if is_gcs:
+            if not gcs_project_id or not gcs_bucket_name:
+                raise ValueError(
+                    "GCS access requires 'gcs_project_id' and 'gcs_bucket_name'. "
+                    "Example: POIDataset(..., is_gcs=True, "
+                    "gcs_project_id='my-gcp-project', gcs_bucket_name='my-bucket')"
+                )
             from google.cloud import storage
-            self.gcs_bucket = storage.Client(project=PROJECT_ID).bucket('qpon-recommend-samples')
+            self.gcs_bucket = storage.Client(project=gcs_project_id).bucket(gcs_bucket_name)
     
     def __len__(self):
         return len(self.df)
@@ -75,8 +83,9 @@ class POIDataset(Dataset):
         image_name = Path(image_path).name
         try:
             if self.is_gcs:
-                # GCS路径
-                blob_path = os.path.join(GCS_RELATIVE, image_name)
+                # Use the original relative path directly as the GCS blob path
+                # (e.g. 'pois/ChIJ.../images/cover/xxx.jpg')
+                blob_path = image_path
                 blob = self.gcs_bucket.blob(blob_path)
                 image_data = blob.download_as_bytes()
                 return Image.open(io.BytesIO(image_data)).convert('RGB')
